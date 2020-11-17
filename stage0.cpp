@@ -256,7 +256,7 @@ void Compiler::constStmts() //token should be NON_KEY_ID
 	}
 	if (y== "+" || y=="-")
 	{
-		if (isInteger(nextToken()))
+		if (!isInteger(nextToken()))
 		{
 			processError("integer expected after sign");
 		}
@@ -285,7 +285,7 @@ void Compiler::constStmts() //token should be NON_KEY_ID
 		processError("data type of token on the right-hand side must be INTEGER or BOOLEAN");
 	insert(x,whichType(y),CONSTANT,whichValue(y),YES,1);
 	x = nextToken();
-	if (nextToken() != "begin" && token != "var" && !isNonKeyId(token))
+	if (x != "begin" && token != "var" && !isNonKeyId(token))
 	{
 		processError("non-keyword identifier, \"begin\", or \"var\" expected");
 	}
@@ -547,15 +547,17 @@ string Compiler::nextToken() {
  {
    if(ch == '{') //process comment
 	{
-		while (nextChar() != END_OF_FILE && nextChar() != '}')
+      nextChar();
+		while (ch != END_OF_FILE && ch != '}')
       {   
          nextChar();
       }
       if (ch == END_OF_FILE)
       {
          processError("unexpected end of file");
-      }
+      }else{
       nextChar();
+      }
       
    }
    else if(ch == '}')
@@ -574,9 +576,11 @@ string Compiler::nextToken() {
    else if(islower(ch))
    {
 		token = ch;
-      while (islower(nextChar()) || isdigit(ch) || ch == '_')
+      nextChar();
+      while (islower(ch) || isdigit(ch) || ch == '_')
       {
          token+=ch;
+         nextChar();
       }
       if (ch == END_OF_FILE)
       {
@@ -605,6 +609,7 @@ string Compiler::nextToken() {
    }
    
    }  
+   cout << "token =  " << token << endl;
    return token;
  }
 
@@ -680,8 +685,8 @@ bool Compiler::isSpecialSymbol(char s) const{
 	return false;
 }
 
-bool Compiler::isInteger(string s) const{  
-	return isdigit(s[0]);
+bool Compiler::isInteger(string s) const{  // allow for a + or - followed by one or more digits
+	return (isdigit(s[0]));
 }
 
 bool Compiler::isBoolean(string s) const{
