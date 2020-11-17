@@ -111,7 +111,7 @@ Compiler::~Compiler(){
 
 void Compiler::createListingHeader() {
 	time_t now = time (NULL); // This returns the current calendar time of the system in number of seconds elapsed since January 1, 1970.
-	listingFile << "STAGE0:" << "David Roberts & Brett Hedden" << ctime(&now) << endl;
+	listingFile << "STAGE0:" << "Brett Hedden & David Roberts " << ctime(&now) << endl;
 	listingFile << "LINE NO:" << "SOURCE STATEMENT" << endl;
 	
 	//line numbers and source statements should be aligned under the headings
@@ -134,10 +134,7 @@ void Compiler::parser(){
 	// the next token.
    prog();
    //parser implements the grammar rules, calling first rule
-   
-   
-   
-   
+ 
 }
 void Compiler::createListingTrailer()
 {
@@ -406,7 +403,7 @@ string name = externalName;
 }
 
 
-string genInternalName(storeTypes stype) {
+string Compiler::genInternalName(storeTypes stype) const{
 	static int boolctr = 0;
 	static int intctr = 0;
 	
@@ -559,6 +556,7 @@ string Compiler::nextToken() {
          processError("unexpected end of file");
       }
       nextChar();
+      
    }
    else if(ch == '}')
    { 
@@ -611,22 +609,46 @@ string Compiler::nextToken() {
  }
 
 
-char Compiler::nextChar() {//returns the next character or end of file marker
+// char Compiler::nextChar() {//returns the next character or end of file marker
 
- sourceFile.get(ch);
- if (sourceFile.eof())
- {
-   ch = END_OF_FILE; //use a special character to designate end of file
- }
- else
- {
-   ch = nextChar();
- }
+ // sourceFile.get(ch);
+ // if (sourceFile.eof())
+ // {
+   // ch = END_OF_FILE; //use a special character to designate end of file
+ // }
+ // else
+ // {
+   // ch = nextChar();
+ // }
  
- listingFile<< ch << endl;
- //print to listing file (starting new line if necessary)
- return ch;
+ // listingFile<< ch << endl;
+ // //print to listing file (starting new line if necessary)
+ // return ch;
+// }
+
+char Compiler::nextChar() { //returns the next character or end of file marker
+	sourceFile.get(ch);
+	
+	static char prevChar = '\n';
+	
+	if (sourceFile.eof()) {
+		ch = END_OF_FILE;
+		return ch;
+	} else {
+		if (prevChar == '\n') {
+			listingFile << setw(5) << ++lineNo << '|';
+		}
+		listingFile << ch;
+      
+	}
+	
+	prevChar = ch;
+	return ch;
 }
+
+
+
+
 
 // bool isInSymbolTable(string name) {
 	// name = name.substr(0,15);
@@ -639,7 +661,7 @@ char Compiler::nextChar() {//returns the next character or end of file marker
 // }
 
 
-bool isKeyword(string s){
+bool Compiler::isKeyword(string s) const{
   	if   (s == "program"
 		|| s == "begin"
 		|| s == "end"
@@ -669,7 +691,7 @@ bool isKeyword(string s){
 }
 
 
-bool isSpecialSymbol(char s) {
+bool Compiler::isSpecialSymbol(char s) const{
 	if (  s == '='
 		|| s == ':'
 		|| s == ','
@@ -682,25 +704,28 @@ bool isSpecialSymbol(char s) {
 		|| s == '>'
 		|| s == '('
 		|| s == ')') {
-			return true;
+		return true;
 	}
 	return false;
 }
 
-bool isInteger(string s) {  
+bool Compiler::isInteger(string s) const{  
 	return isdigit(s[0]);
 }
 
-bool isBoolean(string s) {
+bool Compiler::isBoolean(string s) const{
 	if (s == "true" || s == "false") {
 		return true;
 	}
 	return false;
 }
 
+bool Compiler::isLiteral(string s) const{
+   return (s == "true" || s == "false" || isdigit(s[0]) || (s[0]=='-'&&isdigit(s[1])) || (s[0]=='+'&&isdigit(s[1])));
+}
 
 
-bool isNonKeyId(string name){
+bool Compiler::isNonKeyId(string name) const{
    return !(isKeyword(name) || isSpecialSymbol(name[0]));
 }
 
