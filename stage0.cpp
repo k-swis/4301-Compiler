@@ -28,9 +28,9 @@ using namespace std;
    // int			setUnits;
 // };
 // vector<tableEntry> symbolTable;
-ifstream 	sourceFile;
-ofstream 	listingFile;
-ofstream 	objectFile;
+// ifstream 	sourceFile;
+// ofstream 	listingFile;
+// ofstream 	objectFile;
 
 string		token; // the next token
 char		ch; // the next character of the source file
@@ -112,7 +112,7 @@ Compiler::~Compiler(){
 void Compiler::createListingHeader() {
 	time_t now = time (NULL); // This returns the current calendar time of the system in number of seconds elapsed since January 1, 1970.
 	listingFile << "STAGE0:" << "Brett Hedden & David Roberts " << ctime(&now) << endl;
-	listingFile << "LINE NO:" << "SOURCE STATEMENT" << endl;
+	listingFile << "LINE NO." << setw(30) <<  "SOURCE STATEMENT" << endl;
 	
 	//line numbers and source statements should be aligned under the headings
 }
@@ -586,7 +586,7 @@ string Compiler::nextToken() {
    else if(isdigit(ch))
    {
 		token = ch;
-      while (isdigit(nextChar()))
+      while (isdigit(nextChar()) && nextChar() != END_OF_FILE) //changed this
       {
         token+=ch;
       }
@@ -595,7 +595,7 @@ string Compiler::nextToken() {
          processError("keyword \"program\" expected");
 		}
    }
-   else if(END_OF_FILE)
+   else if(ch == END_OF_FILE)
    {
 		token = ch;
 	}	
@@ -603,62 +603,33 @@ string Compiler::nextToken() {
    {
 		processError("illegal symbol");
    }
-   return token;
+   
    }  
    return token;
  }
 
 
-// char Compiler::nextChar() {//returns the next character or end of file marker
 
- // sourceFile.get(ch);
- // if (sourceFile.eof())
- // {
-   // ch = END_OF_FILE; //use a special character to designate end of file
- // }
- // else
- // {
-   // ch = nextChar();
- // }
- 
- // listingFile<< ch << endl;
- // //print to listing file (starting new line if necessary)
- // return ch;
-// }
 
 char Compiler::nextChar() { //returns the next character or end of file marker
 	sourceFile.get(ch);
 	
-	static char prevChar = '\n';
+	static char prevCh = '\n';
 	
-	if (sourceFile.eof()) {
+	if (sourceFile.eof()){
 		ch = END_OF_FILE;
 		return ch;
 	} else {
-		if (prevChar == '\n') {
+		if (prevCh == '\n') {
 			listingFile << setw(5) << ++lineNo << '|';
 		}
 		listingFile << ch;
-      
 	}
 	
-	prevChar = ch;
+	prevCh = ch;
 	return ch;
 }
 
-
-
-
-
-// bool isInSymbolTable(string name) {
-	// name = name.substr(0,15);
-	// for (i = symbolTable.begin(); i != symbolTable.end(); ++i) {
-		// if (symbolTable.at(i).externalName == name) {
-			// return true;
-		// }
-	// }
-	// return false;
-// }
 
 
 bool Compiler::isKeyword(string s) const{
@@ -728,18 +699,3 @@ bool Compiler::isLiteral(string s) const{
 bool Compiler::isNonKeyId(string name) const{
    return !(isKeyword(name) || isSpecialSymbol(name[0]));
 }
-
-
-
-// bool Compiler::isDefined(string s)
-// {
-   // for(uint i =0;i<symbolTable.size();i++)
-   // {
-      
-     // if(s == symbolTable[i].externalName)
-      // {
-         // return true;
-      // }
-   // }
-   // return false;
-// }
