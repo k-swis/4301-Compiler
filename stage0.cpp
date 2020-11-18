@@ -139,7 +139,7 @@ void Compiler::parser(){
 void Compiler::createListingTrailer()
 {
 	//print "COMPILATION TERMINATED", "# ERRORS ENCOUNTERED"
-	listingFile << "COMPILATION TERMINATED" << errorCount << "ERRORS ENCOUNTERED" << endl;
+	listingFile << "COMPILATION TERMINATED        " << errorCount << " ERRORS ENCOUNTERED" << endl;
 }
 void Compiler::processError(string err)
 {
@@ -239,9 +239,11 @@ void Compiler::beginEndStmt() //token should be "begin"
 }
 void Compiler::constStmts() //token should be NON_KEY_ID
 {
+   
 	string x,y;
 	if (!isNonKeyId(token))
 	{
+      
 		processError("non-keyword identifier expected");
 	}
 	x = token;
@@ -250,7 +252,7 @@ void Compiler::constStmts() //token should be NON_KEY_ID
 		processError("\"=\" expected");
 	}
 	y = nextToken();
-	if (y!= "+" && y!="-" && y!="not" && !isNonKeyId(y)&& y!="true" && y!="false" && !isInteger(y))
+	if (y!= "+" && y!= "-" && y!= "not" && !isNonKeyId(y)&& y!="true" && y!="false" && !isInteger(y))
 	{
 		processError("token to right of \"=\" illegal");
 	}
@@ -276,16 +278,17 @@ void Compiler::constStmts() //token should be NON_KEY_ID
 		{
 			y = "true";
 		}
-	}
+	} 
 	if (nextToken() != ";")
 	{
 		processError("semicolon expected");
 	}
-	if (isInteger(y) != true && isBoolean(y) != true)
+   
+	if (symbolTable.find(y)->second.getDataType() != INTEGER && symbolTable.find(y)->second.getDataType() != BOOLEAN)
 		processError("data type of token on the right-hand side must be INTEGER or BOOLEAN");
 	insert(x,whichType(y),CONSTANT,whichValue(y),YES,1);
 	x = nextToken();
-	if (x != "begin" && token != "var" && !isNonKeyId(token))
+	if (x != "begin" && token != "var" && !isNonKeyId(x))
 	{
 		processError("non-keyword identifier, \"begin\", or \"var\" expected");
 	}
@@ -296,12 +299,14 @@ void Compiler::constStmts() //token should be NON_KEY_ID
 }
 void Compiler::varStmts() //token should be NON_KEY_ID
 {
+  
 	string x,y;
-	if (isNonKeyId(token))
+	if (!isNonKeyId(token))
 	{
 		processError("non-keyword identifier expected");
 	}
 	x = ids();
+   
 	if (token != ":")
 	{
 		processError("':' expected");
@@ -311,11 +316,13 @@ void Compiler::varStmts() //token should be NON_KEY_ID
 		processError("illegal type follows ':'");
 	}
 	y = token;
+   
 	if (nextToken() != ";")
 	{
 		processError("semicolon expected");
 	}
-	insert(x,whichType(y),CONSTANT,whichValue(y),YES,1);
+	insert(x,whichType(y),VARIABLE,"",YES,1);
+   
 	if (nextToken() != "begin"&& !isNonKeyId(token))
 	{
 		processError("non-keyword identifier or \"begin\" expected");
@@ -324,6 +331,7 @@ void Compiler::varStmts() //token should be NON_KEY_ID
 	{
 		varStmts();
 	}
+   
 }	
 string Compiler::ids() //token should be NON_KEY_ID
 {
@@ -450,6 +458,7 @@ storeTypes type;
    }
     else
    {
+      
       processError("reference to undefined variable");
    }
    
@@ -471,6 +480,7 @@ string value;
    }
    else
    {
+      
       processError("reference to undefined constant");
    }
  }
@@ -486,6 +496,9 @@ void Compiler::code(string op, string operand1, string operand2){
  {
    emitEpilogue(operand2);
  }
+ 
+ 
+ 
  else
  {
    processError("compiler error since function code should not be called with illegal arguments");
@@ -499,17 +512,20 @@ void Compiler::emit(string label, string instruction, string operands, string co
  // Output the operands in a field of width 24
  // Output the comment
  objectFile << left << setw(8) << label;
- objectFile << setw(8) << instruction;
+ objectFile << setw(8) << instruction ;
  objectFile << setw(24) << operands;
- objectFile << setw(8) << comment;
+ objectFile << setw(8) << ";" << comment << endl;
 }
 void Compiler::emitPrologue(string progName, string operand2){
+time_t now = time (NULL); 
  // Output identifying comments at beginning of objectFile
- objectFile << progName;
+ objectFile << "; Brett Hedden & David Roberts      " << ctime(&now) << endl;
+ objectFile << "%INCLUDE \"Along32.inc\" " << endl << "%INCLUDE \"Macros_Along.inc\"" << endl;
  // Output the %INCLUDE directives
- emit("SECTION", ".text");
- emit("global", "_start", "", "; program" + progName);
- emit("_start:");
+ emit("\nSECTION", ".text");
+ emit("global", "_start", "", "; program " + progName);
+ emit("\n_start:");
+ 
 }
 void Compiler::emitEpilogue(string operand1, string operand2){
  emit("","Exit", "{0}");
@@ -609,7 +625,7 @@ string Compiler::nextToken() {
    }
    
    }  
-   cout << "token =  " << token << endl;
+   
    return token;
  }
 
@@ -686,7 +702,31 @@ bool Compiler::isSpecialSymbol(char s) const{
 }
 
 bool Compiler::isInteger(string s) const{  // allow for a + or - followed by one or more digits
-	return (isdigit(s[0]));
+	
+   // for(uint k = 0; k <= s.size(); k++){
+      // if(isdigit(s(k))){
+         // return true;
+      // }
+      // else if(s(0) = "+" || s(0) = "-" && isdigit(s(k))){
+         // return true;
+      // }
+      // else{
+         // return false;
+      // }
+      
+      
+   // }
+  return isdigit(s[0])||(s[0]=='-'&&isdigit(s[1]))||(s[0]=='+'&&isdigit(s[1]));
+  
+  
+  
+   // try {
+		// stoi(s);
+	// } catch (const invalid_argument& ia) {
+		// return false;
+	// }
+	// return true;
+   
 }
 
 bool Compiler::isBoolean(string s) const{
@@ -697,10 +737,29 @@ bool Compiler::isBoolean(string s) const{
 }
 
 bool Compiler::isLiteral(string s) const{
-   return (s == "true" || s == "false" || isdigit(s[0]) || (s[0]=='-'&&isdigit(s[1])) || (s[0]=='+'&&isdigit(s[1])));
+   return (s == "true" || s == "false" || isdigit(s[0]) || (s[0]=='-'&&isdigit(s[1])) || (s[0]=='+'&&isdigit(s[1])) || s == "integer" || s == "boolean" );
 }
 
 
 bool Compiler::isNonKeyId(string name) const{
-   return !(isKeyword(name) || isSpecialSymbol(name[0]));
+   
+   return !(isKeyword(name) || isSpecialSymbol(name[0]) || isInteger(name));
 }
+
+// string Compiler::getTemp{//similar to getLabel
+ // string temp;
+ // currentTempNo++;
+ // temp = "T" + currentTempNo;
+ // if (currentTempNo > maxTempNo)
+ // insert(temp, UNKNOWN, VARIABLE, "", NO, 1);
+ // maxTempNo++;
+ // return temp;
+// }
+// string getLabel(){
+ // //static local variabes started at -1 then increment by 1 then for temp be equal to .L
+ // static int labelNo = -1;
+ // string temp;
+ // labelNo++;
+ // temp = ".L" + to_string(labelNo);
+ // return temp;
+// }
