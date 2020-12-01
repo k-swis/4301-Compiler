@@ -287,7 +287,7 @@ void Compiler::varStmts() //token should be NON_KEY_ID
 	{
 		processError("semicolon expected");
 	}
-	insert(x,y == "integer"? INTEGER:BOOLEAN ,VARIABLE,"",YES,1);
+	insert(x,y == "integer"? INTEGER:BOOLEAN ,VARIABLE,"1",YES,1);
    
 	if (nextToken() != "begin"&& !isNonKeyId(token))
 	{
@@ -432,11 +432,13 @@ string Compiler::whichValue(string name){ //tells which value a name has
 string value;
  if (isLiteral(name))
  {
-   if ( name == "false")
+   if ( name == "false"){
       value = "0";
-   else if ( name == "true") 
+   }else if ( name == "true") {
       value = "-1";
-     else value = name;
+   }else value = name;
+   
+  
  }
  else //name is an identifier and hopefully a constant
  {
@@ -1110,10 +1112,10 @@ void Compiler::emitModuloCode(string operand1, string operand2) {         // op2
 
 void Compiler::emitNegationCode(string operand1, string operand2) {           // -op1
    if (symbolTable.find(operand1) == symbolTable.end())
-		processError("Semantic Fail: reference to undefined variable" + operand1);
+		processError(" reference to undefined variable" + operand1);
 
 	if (whichType(operand1) != INTEGER)
-		processError("Semantic Fail: unary '-' requires an integer operand: -" + operand1);
+		processError(" unary '-' requires an integer operand: -" + operand1);
 
 	if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1)
 	{
@@ -1147,13 +1149,13 @@ void Compiler::emitNegationCode(string operand1, string operand2) {           //
 void Compiler::emitAndCode(string operand1, string operand2) { //and operand1 to operand2
 
 	if (symbolTable.find(operand1) == symbolTable.end())
-		processError("Semantic Fail: reference to undefined variable: "+ operand1);
+		processError(" reference to undefined variable: "+ operand1);
 
 	if (symbolTable.find(operand2) == symbolTable.end())
-		processError("Semantic Fail: reference to undefined variable: " + operand2);
+		processError(" reference to undefined variable: " + operand2);
 
 	if (whichType(operand1) != BOOLEAN && whichType(operand2) != BOOLEAN) {
-		processError("Semantic Fail: binary 'and' requires operands of the same type: " + operand2 + "and" + operand1);
+		processError(" binary 'and' requires operands of the same type: " + operand2 + "and" + operand1);
 	}
 	if (contentsOfAReg != "" && contentsOfAReg.at(0) == 'T' && contentsOfAReg != operand1 && contentsOfAReg != operand2) {
 		emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
@@ -1436,26 +1438,26 @@ void Compiler::emitAssignCode(string operand1, string operand2) { //assign the v
 	//emit("operand1 = " + operand1, " operand2 = " + operand2, " AReg = " + contentsOfAReg);
 
 	if (symbolTable.find(operand1) == symbolTable.end())
-		processError("Semantic Fail: reference to undefined variable" + operand1);
+		processError(" reference to undefined variable" + operand1);
 
 	if (symbolTable.find(operand2) == symbolTable.end())
-		processError("Semantic Fail: reference to undefined variable" + operand2);
+		processError(" reference to undefined variable" + operand2);
 
 	// the that non_key_id was not initialized before
 	if (symbolTable.find(operand2)->second.getMode() == CONSTANT)
-		processError("Semantic Fail: symbol on left-hand side of assignment must have a storage mode of VARIABLE: "+ operand2+ " := " + operand1);
+		processError(" symbol on left-hand side of assignment must have a storage mode of VARIABLE: "+ operand2+ " := " + operand1);
 
 	if (whichType(operand1) != whichType(operand2))
-		processError("Semantic Fail: incompatible types for operator ':=': " + operand2 + ":=" + operand1);
+		processError(" incompatible types for operator ':=': " + operand2 + ":=" + operand1);
 
 	if (symbolTable.find(operand1) == symbolTable.end())
-		processError("Semantic Fail: reference to undefined variable '" + operand1 + "'");
+		processError(" reference to undefined variable '" + operand1 + "'");
 
 	if (symbolTable.find(operand2) == symbolTable.end())
-		processError("Semantic Fail: reference to undefined variable '" + operand2 + "'");
+		processError(" reference to undefined variable '" + operand2 + "'");
 
 	if (symbolTable.find(operand2)->second.getMode() != VARIABLE)
-		processError("Semantic Fail: symbol on left-hand side of assignment must have a storage mode of VARIABLE: "+ operand2 + " := " + operand1);
+		processError(" symbol on left-hand side of assignment must have a storage mode of VARIABLE: "+ operand2 + " := " + operand1);
 
 	if (operand1 == operand2)
 		return;
@@ -1510,15 +1512,15 @@ void Compiler::emitReadCode(string operand, string operand2) {
 		// find return end if can not find 
 		//if name is not in symbol table
 		if (symbolTable.find(name) == symbolTable.end()) {
-			processError("Semantic Fail:reference to undefined variable '" + name + "'");
+			processError("reference to undefined variable '" + name + "'");
 		}
 		//if data type of name is not INTEGER
 		if (symbolTable.at(name).getDataType() != INTEGER) {
-			processError("Semantic Fail:can't read variables of this type: "+ name );
+			processError("can't read variables of this type: "+ name );
 		}
 		//if storage mode of name is not VARIABLE
 		if (symbolTable.at(name).getMode() != VARIABLE) {
-			processError("Semantic Fail:attempting to read to a read-only location: "+ name);
+			processError("attempting to read to a read-only location: "+ name);
 
 		}
 		emit("", "call", "ReadInt", "; read int; value placed in eax");
@@ -2037,21 +2039,30 @@ void Compiler::express() {        // stage 1, production 9
 }
 
 void Compiler::expresses() {     // stage 1, production 10
-	if (RelOp(token)) {
-		pushOperator(token);
-		term();
+	string x = "";
+	string operand1, operand2;
+	if (token != "=" && token != "<>" && token != "<=" && token != ">=" && token != "<" && token != ">")
+		processError("\"=\", \"<>\", \"<=\", \">=\", \"<\", or \">\" expected");
 
-		nextToken();
-		string rhs = popOperand();
-		string lhs = popOperand();
-		code(popOperator(), rhs, lhs);
-		
+	pushOperator(token);
+	nextToken();
+
+	if (token != "not" && token != "true" && token != "false" && token != "(" && token != "+"
+		&& token != "-" && !isInteger(token) && !isNonKeyId(token))
+		processError("\"not\", \"true\", \"false\", \"(\", \"+\", \"-\", integer, or non - keyword identifier expected");
+	else term();
+
+	operand1 = popOperand();
+	operand2 = popOperand();
+
+	code(popOperator(), operand1, operand2);
+
+	if (token == "<>" || token == "=" || token == "<=" || token == ">=" || token == "<" || token == ">")
 		expresses();
-	}
 }
 
 void Compiler::term() { //double check this function
-	if (token == "not" || token == "true" || token == "false" || token == "(" 
+	if (token == "not" ||isBoolean(token) || token == "(" 
 		|| token == "+" || token == "-" || isInteger(token) || isNonKeyId(token)){
 		factor();
 		terms();
