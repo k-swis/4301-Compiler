@@ -378,7 +378,7 @@ void Compiler::insert(string externalName, storeTypes inType, modes inMode, stri
 			//symbolTable[name] is defined
 			if (symbolTable.find(name) != symbolTable.end())
 				processError("multiple name definition" + name);
-			else if (isKeyword(name))
+			else if (isKeyword(name) && name != "true" && name != "false")
 				processError("illegal use of keyword");
 			//create table entry
 			else
@@ -560,7 +560,7 @@ void Compiler::emitStorage(){
          
       }     
    }
- 
+   objectFile << endl;
    emit("SECTION", ".bss");
    // for those entries in the symbolTable that have
    // an allocation of YES and a storage mode of VARIABLE
@@ -574,33 +574,6 @@ void Compiler::emitStorage(){
       
    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -863,7 +836,7 @@ string Compiler::getLabel() {
 	static int labelNo = -1;
 	string temp;
 	labelNo++;
-	temp = ".L" + to_string(labelNo);
+	temp = "L" + to_string(labelNo);
 	return temp;
 }
 
@@ -879,52 +852,49 @@ bool Compiler::isTemporary(string s) const { // determines if s represents a tem
 
 void Compiler::emitAdditionCode(string operand1, string operand2) { //add operand1 to operand2
 
-	// emit("operand1 = " + operand1, " operand2 = " + operand2, " AReg = " + contentsOfAReg);
-//3 + b -> cannot do the addition
-	if (symbolTable.find(operand1) == symbolTable.end())
-		processError("reference to undefined symbol");
+	
+	if (symbolTable.count(operand1) == 0)
+		processError("reference to undefined symbol " + operand1);
+	else if (symbolTable.count(operand2) == 0)
+		processError("reference to undefined symbol " + operand2);
 
-	if (symbolTable.find(operand2) == symbolTable.end())
-		processError("reference to undefined symbol");
-
-	if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
+	if (symbolTable.at(operand1).getDataType() != storeTypes::INTEGER 
+		|| symbolTable.at(operand2).getDataType() != storeTypes::INTEGER)
 		processError("binary '+' requires integer operands");
 
-//------
-	if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
+	if (contentsOfAReg[0] == 'T' && contentsOfAReg != symbolTable.at(operand1).getInternalName() 
+		&& contentsOfAReg != symbolTable.at(operand2).getInternalName())
 	{
-		// emit code to store that temp into memory
+		
 		emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
-		symbolTable.find(contentsOfAReg)->second.setAlloc(YES);
+		symbolTable.at(contentsOfAReg).setAlloc(allocation::YES);
 		contentsOfAReg = "";
 	}
 
-	if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2){
+	if (!contentsOfAReg.empty() && contentsOfAReg[0] != 'T' && contentsOfAReg != symbolTable.at(operand1).getInternalName() 
+		&& contentsOfAReg != symbolTable.at(operand2).getInternalName())
+	{
 		contentsOfAReg = "";
-   }
-	if (contentsOfAReg != operand1 && contentsOfAReg != operand2)
-	{	// emit code to load operand2 into A register
-		emit("", "mov", "eax,[" + symbolTable.find(operand2)->second.getInternalName() + ']', "; AReg = " + whichValue(operand2));
-		contentsOfAReg = operand2;
 	}
 
-	if (contentsOfAReg == operand2)
-		emit("", "add", "eax,[" + symbolTable.find(operand1)->second.getInternalName() + ']',
-			"; AReg = " + operand2 + " + " + operand1);
+	if (contentsOfAReg != symbolTable.at(operand1).getInternalName() 
+		&& contentsOfAReg != symbolTable.at(operand2).getInternalName()) {
+		emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
+		contentsOfAReg = symbolTable.at(operand2).getInternalName();
+	}
 
+	if (contentsOfAReg == symbolTable.at(operand2).getInternalName())
+		emit("", "add", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand2 + " + " + operand1);
 	else
-		emit("", "add", "eax,[" + symbolTable.find(operand2)->second.getInternalName() + ']',
-			"; AReg = " + operand1 + " + " + operand2);
+		emit("", "add", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand1 + " + " + operand2);
 
-	// free the temporary being used
-	if (isTemporary(operand1))
+	if (operand1[0] == 'T')
 		freeTemp();
-
-	if (isTemporary(operand2))
+	if (operand2[0] == 'T')
 		freeTemp();
 
 	contentsOfAReg = getTemp();
-	symbolTable.find(contentsOfAReg)->second.setDataType(INTEGER);
+	symbolTable.at(contentsOfAReg).setDataType(storeTypes::INTEGER);
 	pushOperand(contentsOfAReg);
 }
 
